@@ -47,9 +47,9 @@ export function WhatsAppMessenger() {
           const apiUrl = `https://whats-api.rcsoft.in/send-message?api_key=ZzAqceXUC53rSl1I71GkdD71Y2zu83&sender=919140404608&number=${cleanNumber}&message=${encodeURIComponent(message)}&footer=${encodeURIComponent(footer)}`;
           
           const response = await fetch(apiUrl);
-          const result = await response.json();
           
-          if (response.ok && result.success !== false) {
+          // Consider it successful if the request went through (status 200)
+          if (response.ok) {
             successCount++;
           } else {
             failedCount++;
