@@ -187,13 +187,11 @@ export function WhatsAppMessenger() {
         setStatusMessage('Image uploaded successfully!');
       } else {
         setStatus('error');
-        setStatusMessage('Failed to upload image');
-        setUploadedImage(null);
+        setStatusMessage('Failed to upload image. Please try again.');
       }
     } catch (error) {
       setStatus('error');
-      setStatusMessage('Error uploading image');
-      setUploadedImage(null);
+      setStatusMessage('Error uploading image. Please check your connection.');
     } finally {
       setIsUploadingImage(false);
     }
