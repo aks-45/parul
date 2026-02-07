@@ -55,20 +55,23 @@ export function WhatsAppMessenger() {
             apiUrl = `https://whats-api.rcsoft.in/send-message?api_key=ZzAqceXUC53rSl1I71GkdD71Y2zu83&sender=919140404608&number=${cleanNumber}&message=${encodeURIComponent(message)}&footer=${encodeURIComponent(footer)}`;
           }
           
+          console.log('Sending to:', cleanNumber, 'URL:', apiUrl);
           const response = await fetch(apiUrl);
+          const responseData = await response.text();
+          console.log('Response:', response.status, responseData);
           
-          // Consider it successful if the request went through (status 200)
           if (response.ok) {
             successCount++;
           } else {
             failedCount++;
+            console.error('Failed for', cleanNumber, ':', responseData);
           }
           
-          // Add delay between API calls to avoid rate limiting
           if (i < numbers.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+            await new Promise(resolve => setTimeout(resolve, 2000));
           }
         } catch (error) {
+          console.error('Error sending to', number, ':', error);
           failedCount++;
         }
       }
@@ -173,7 +176,7 @@ export function WhatsAppMessenger() {
 
     try {
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('file', file);
 
       const response = await fetch('https://parul-industry.onrender.com/upload', {
         method: 'POST',
@@ -182,16 +185,22 @@ export function WhatsAppMessenger() {
 
       if (response.ok) {
         const data = await response.json();
-        setImageUrl(data.url);
-        setStatus('success');
-        setStatusMessage('Image uploaded successfully!');
+        const uploadedUrl = data.url || data.fileUrl || data.path;
+        if (uploadedUrl) {
+          setImageUrl(uploadedUrl);
+          setStatus('success');
+          setStatusMessage('Image uploaded successfully!');
+        } else {
+          setStatus('error');
+          setStatusMessage('Upload succeeded but no URL returned');
+        }
       } else {
         setStatus('error');
-        setStatusMessage('Failed to upload image. Please try again.');
+        setStatusMessage(`Upload failed: ${response.status}`);
       }
     } catch (error) {
       setStatus('error');
-      setStatusMessage('Error uploading image. Please check your connection.');
+      setStatusMessage('Error uploading image');
     } finally {
       setIsUploadingImage(false);
     }
@@ -268,13 +277,15 @@ export function WhatsAppMessenger() {
               </p>
             </div>
 
-            {/* Image Upload */}
+            {/* Image Upload & URL */}
             <div>
-              <label htmlFor="image-upload" className="flex items-center gap-2 text-gray-700 font-semibold mb-2 text-sm sm:text-base lg:text-lg">
+              <label className="flex items-center gap-2 text-gray-700 font-semibold mb-2 text-sm sm:text-base lg:text-lg">
                 <Image className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-green-600" />
-                Upload Image (Optional)
+                Image (Optional)
               </label>
-              <div className="relative">
+              
+              {/* Image Upload */}
+              <div className="mb-3">
                 <input
                   id="image-upload"
                   type="file"
@@ -285,7 +296,7 @@ export function WhatsAppMessenger() {
                 />
                 <label
                   htmlFor="image-upload"
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 lg:py-4 text-sm sm:text-base border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 transition-colors cursor-pointer flex items-center justify-center gap-2 bg-gray-50 hover:bg-green-50"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 transition-colors cursor-pointer flex items-center justify-center gap-2 bg-gray-50 hover:bg-green-50"
                 >
                   {isUploadingImage ? (
                     <>
@@ -302,8 +313,9 @@ export function WhatsAppMessenger() {
                   )}
                 </label>
               </div>
+
               {uploadedImage && (
-                <div className="mt-2 flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                <div className="mb-3 flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
                     <span className="text-xs sm:text-sm text-green-700 truncate">
@@ -318,13 +330,22 @@ export function WhatsAppMessenger() {
                   </button>
                 </div>
               )}
-              {imageUrl && (
-                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-xs text-blue-700 break-all">URL: {imageUrl}</p>
-                </div>
-              )}
+
+              {/* Image URL Input */}
+              <div className="relative">
+                <span className="text-xs text-gray-600 mb-1 block">Or paste image URL:</span>
+                <input
+                  id="image-url"
+                  type="url"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-lg focus:outline-none focus:border-green-500 transition-colors"
+                />
+              </div>
+              
               <p className="text-xs sm:text-sm text-gray-500 mt-2">
-                Upload an image to send with your WhatsApp message
+                Upload an image or paste an image URL to send with your message
               </p>
             </div>
 
