@@ -178,7 +178,7 @@ export function WhatsAppMessenger() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('https://parul-industry.onrender.com/upload', {
+      const response = await fetch('http://localhost:3001/upload', {
         method: 'POST',
         body: formData,
       });
