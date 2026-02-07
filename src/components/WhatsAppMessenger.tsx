@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Send, Phone, MessageSquare, CheckCircle, AlertCircle, Upload, X } from 'lucide-react';
+import { Send, Phone, MessageSquare, CheckCircle, AlertCircle, Upload, X, Image } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export function WhatsAppMessenger() {
@@ -10,6 +10,9 @@ export function WhatsAppMessenger() {
   const [statusMessage, setStatusMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState('');
+  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const handleSend = async () => {
     if (!phoneNumbers.trim()) {
@@ -44,7 +47,13 @@ export function WhatsAppMessenger() {
         const number = numbers[i];
         try {
           const cleanNumber = number.replace(/[^0-9]/g, '');
-          const apiUrl = `https://whats-api.rcsoft.in/send-message?api_key=ZzAqceXUC53rSl1I71GkdD71Y2zu83&sender=919140404608&number=${cleanNumber}&message=${encodeURIComponent(message)}&footer=${encodeURIComponent(footer)}`;
+          
+          let apiUrl;
+          if (imageUrl.trim()) {
+            apiUrl = `https://whats-api.rcsoft.in/send-media?api_key=ZzAqceXUC53rSl1I71GkdD71Y2zu83&sender=919140404608&number=${cleanNumber}&media_type=image&caption=${encodeURIComponent(message)}&footer=${encodeURIComponent(footer)}&url=${encodeURIComponent(imageUrl)}`;
+          } else {
+            apiUrl = `https://whats-api.rcsoft.in/send-message?api_key=ZzAqceXUC53rSl1I71GkdD71Y2zu83&sender=919140404608&number=${cleanNumber}&message=${encodeURIComponent(message)}&footer=${encodeURIComponent(footer)}`;
+          }
           
           const response = await fetch(apiUrl);
           
@@ -86,11 +95,12 @@ export function WhatsAppMessenger() {
     setStatus('idle');
     setStatusMessage('');
     setUploadedFile(null);
-    // Reset the file input
+    setImageUrl('');
+    setUploadedImage(null);
     const fileInput = document.getElementById('excel-upload') as HTMLInputElement;
-    if (fileInput) {
-      fileInput.value = '';
-    }
+    if (fileInput) fileInput.value = '';
+    const imageInput = document.getElementById('image-upload') as HTMLInputElement;
+    if (imageInput) imageInput.value = '';
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,11 +160,50 @@ export function WhatsAppMessenger() {
 
   const removeFile = () => {
     setUploadedFile(null);
-    // Reset the file input
     const fileInput = document.getElementById('excel-upload') as HTMLInputElement;
-    if (fileInput) {
-      fileInput.value = '';
+    if (fileInput) fileInput.value = '';
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadedImage(file);
+    setIsUploadingImage(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch('https://parul-industry.onrender.com/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setImageUrl(data.url);
+        setStatus('success');
+        setStatusMessage('Image uploaded successfully!');
+      } else {
+        setStatus('error');
+        setStatusMessage('Failed to upload image');
+        setUploadedImage(null);
+      }
+    } catch (error) {
+      setStatus('error');
+      setStatusMessage('Error uploading image');
+      setUploadedImage(null);
+    } finally {
+      setIsUploadingImage(false);
     }
+  };
+
+  const removeImage = () => {
+    setUploadedImage(null);
+    setImageUrl('');
+    const imageInput = document.getElementById('image-upload') as HTMLInputElement;
+    if (imageInput) imageInput.value = '';
   };
 
   return (
@@ -218,6 +267,66 @@ export function WhatsAppMessenger() {
               )}
               <p className="text-xs sm:text-sm text-gray-500 mt-2">
                 Upload an Excel file (.xls, .xlsx) or CSV file containing phone numbers
+              </p>
+            </div>
+
+            {/* Image Upload */}
+            <div>
+              <label htmlFor="image-upload" className="flex items-center gap-2 text-gray-700 font-semibold mb-2 text-sm sm:text-base lg:text-lg">
+                <Image className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-green-600" />
+                Upload Image (Optional)
+              </label>
+              <div className="relative">
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={isUploadingImage}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="image-upload"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 lg:py-4 text-sm sm:text-base border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 transition-colors cursor-pointer flex items-center justify-center gap-2 bg-gray-50 hover:bg-green-50"
+                >
+                  {isUploadingImage ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-gray-600">Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+                      <span className="text-gray-600">
+                        {uploadedImage ? 'Change image' : 'Click to upload image'}
+                      </span>
+                    </>
+                  )}
+                </label>
+              </div>
+              {uploadedImage && (
+                <div className="mt-2 flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-green-700 truncate">
+                      {uploadedImage.name}
+                    </span>
+                  </div>
+                  <button
+                    onClick={removeImage}
+                    className="text-green-600 hover:text-green-800 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+              {imageUrl && (
+                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-700 break-all">URL: {imageUrl}</p>
+                </div>
+              )}
+              <p className="text-xs sm:text-sm text-gray-500 mt-2">
+                Upload an image to send with your WhatsApp message
               </p>
             </div>
 
